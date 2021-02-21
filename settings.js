@@ -54,6 +54,12 @@ var settings = module.exports = {
     
     // Disbled Credential Secret
     credentialSecret: false
+    
+    editorTheme: {
+        page: {
+            css: "./public/css/midnight-red.css"
+        }
+    }
 }
 
 if (process.env.NODE_RED_USERNAME && process.env.NODE_RED_PASSWORD) {
