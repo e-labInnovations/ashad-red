@@ -53,7 +53,7 @@ var settings = module.exports = {
     },
     
     // Disbled Credential Secret
-    credentialSecret: false
+    credentialSecret: false,
     
     editorTheme: {
         page: {
