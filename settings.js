@@ -57,7 +57,7 @@ var settings = module.exports = {
     
     editorTheme: {
         page: {
-            css: "./public/css/midnight-red.css"
+            css: path.join(__dirname,"public/css/midnight-red.css")
         }
     }
 }
