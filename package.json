@@ -1,5 +1,5 @@
 {
-    "name"         : "node-red-heroku",
+    "name"         : "ashad-red",
     "version"      : "0.0.2",
     "dependencies": {
         "when": "~3.x",
@@ -7,6 +7,7 @@
         "nano": "~5.11.0",
         "feedparser":"~0.19.2",
         "redis":"~0.10.1",
-        "node-red": "~1.x"
+        "node-red": "~1.x",
+        "firebase-admin": "^10.0.2"
     }
 }
