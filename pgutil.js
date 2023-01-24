@@ -1,6 +1,7 @@
 const pg = require('pg')
 const when = require('when')
 const util = require('util')
+require('dotenv').config()
 
 let pool
 

@@ -17,6 +17,7 @@
 var path = require("path");
 var when = require("when");
 var pgutil = require('./pgutil');
+require('dotenv').config()
 
 process.env.NODE_RED_HOME = __dirname;
 

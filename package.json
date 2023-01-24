@@ -1,13 +1,14 @@
 {
-    "name"         : "ashad-red",
-    "version"      : "0.0.2",
+    "name": "ashad-red",
+    "version": "0.0.2",
     "dependencies": {
-        "when": "~3.x",
-        "pg": "^8.3.0",
+        "dotenv": "^16.0.3",
+        "feedparser": "~0.19.2",
+        "firebase-admin": "^10.0.2",
         "nano": "~5.11.0",
-        "feedparser":"~0.19.2",
-        "redis":"~0.10.1",
-        "node-red": "~1.x",
-        "firebase-admin": "^10.0.2"
+        "node-red": "^3.0.2",
+        "pg": "^8.3.0",
+        "redis": "~0.10.1",
+        "when": "~3.x"
     }
 }

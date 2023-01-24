@@ -1,11 +1,11 @@
-ashad
+ashad-red
 ================
 
-A wrapper for deploying [Node-RED](http://nodered.org) into the [Heroku](https://www.heroku.com).
+A wrapper for deploying [Node-RED](http://nodered.org) into the [Render](https://render.com/).
 
-### Deploying Node-RED into Heroku
+### Deploying Node-RED into Render
 
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/e-labInnovations/ashad)
+<!-- [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/e-labInnovations/ashad) -->
 
 ### Password protect the flow editor
 
@@ -15,3 +15,7 @@ Add the following user-defined variables.
 
 * NODE_RED_USERNAME - the username to secure the editor with
 * NODE_RED_PASSWORD - the password to secure the editor with
+* DATABASE_URL      - the prostgresql database url
+
+
+run command: `node --max-old-space-size=384 node_modules/node-red/red.js --settings ./settings.js`
