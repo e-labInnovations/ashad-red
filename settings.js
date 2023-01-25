@@ -42,7 +42,6 @@ var settings = module.exports = {
     // flowFile: 'flows.json',
 
     nodesExcludes:[ '66-mongodb.js','75-exec.js','35-arduino.js','36-rpi-gpio.js','25-serial.js','28-tail.js','50-file.js','31-tcpin.js','32-udp.js','23-watch.js' ],
-    autoInstallModules: true,
 
     /** By default, credentials are encrypted in storage using a generated key. To
      * specify your own secret, set the following property.
@@ -66,7 +65,7 @@ var settings = module.exports = {
      * the user's home directory. To use a different location, the following
      * property can be used
      */
-    //userDir: '/home/nol/.node-red/',
+    userDir: __dirname,
 
     /** Node-RED scans the `nodes` directory in the userDir to find local node files.
      * The following property can be used to specify an additional directory to scan.
@@ -349,7 +348,7 @@ var settings = module.exports = {
      * will install/load. It can use '*' as a wildcard that matches anything.
      */
     externalModules: {
-        // autoInstall: false,   /** Whether the runtime will attempt to automatically install missing modules */
+        autoInstall: true,   /** Whether the runtime will attempt to automatically install missing modules */
         // autoInstallRetry: 30, /** Interval, in seconds, between reinstall attempts */
         // palette: {              /** Configuration for the Palette Manager */
         //     allowInstall: true, /** Enable the Palette Manager in the editor */
