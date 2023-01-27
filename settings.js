@@ -325,7 +325,7 @@ var settings = module.exports = {
      */
     contextStorage: {
        default: {
-           module:"localfilesystem"
+        //    module:"localfilesystem"
        },
     },
 
