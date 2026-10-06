@@ -1,48 +1,34 @@
 # ashad-red
 
+**Node-RED 5 for free cloud hosting.** It keeps your flows in a database, so restarts and redeploys don't wipe them, and it keeps itself awake on Render's free plan.
+
+[![License](https://img.shields.io/github/license/e-labInnovations/ashad-red)](LICENSE)
+[![Node-RED](https://img.shields.io/badge/Node--RED-5.x-8f0000)](https://nodered.org)
+[![Node.js](https://img.shields.io/badge/node-%E2%89%A522.9-339933)](https://nodejs.org)
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/e-labInnovations/ashad-red)
 
-A ready-to-deploy [Node-RED](https://nodered.org) 5 setup for [Render](https://render.com) and similar hosts. These hosts have no persistent disk, so flows, credentials and settings are stored in a database instead of on disk.
+![The ashad-red home page: links to the flow editor, deploying your own copy and the Node-RED docs, drawn as a Node-RED flow](docs/screenshot.png)
 
-- Storage in **Turso**, **PostgreSQL** or local files, picked from environment variables
-- Optional login for the flow editor
-- Editor follows the system light/dark theme by default
-- Static site served from `public/` at `/`, editor at `/red`
+## Why
 
-## Requirements
+Free hosts like Render give you a server with no persistent disk. Plain Node-RED saves flows to files, so every restart or redeploy loses them, and the free plan also puts the app to sleep after 15 minutes of no traffic.
 
-- Node.js **22.9 or later** (Node 24 recommended), as Node-RED 5 requires
-- Optional: a [Turso](https://turso.tech) or PostgreSQL database
+ashad-red is a ready-made Node-RED setup that fixes both:
 
-## Quick start (local)
+- **Flows survive restarts.** Flows, credentials, settings, library entries and editor login sessions are stored in **Turso** (libSQL) or **PostgreSQL**, such as Neon.
+- **Always on.** The app pings its own public URL every 10 minutes, so Render doesn't put it to sleep.
+- **One-click deploy.** The Render button sets up the service and asks only for your database and login details.
+- **Editor login** from two environment variables.
+- **Safer defaults.** Nodes that run shell commands or touch the server's files are turned off.
+- **System light/dark theme** in the editor, and a home page that links to it.
 
-```sh
-git clone https://github.com/e-labInnovations/ashad-red.git
-cd ashad-red
-npm install
-cp .env.example .env   # edit it; see Configuration
-npm start
-```
+## Quick start: free deploy with Turso and Render
 
-Open <http://localhost:1880/red> for the editor and <http://localhost:1880> for the static site.
+You need free accounts on [Turso](https://turso.tech) and [Render](https://render.com).
 
-To run locally without a database, delete or comment out `TURSO_DATABASE_URL` and `DATABASE_URL` in `.env`. Flows are then saved to `flows.json` in the project folder.
-
-## Deploy free with Turso and Render
-
-You can run Node-RED around the clock at no cost using Turso's free database and Render's free web service.
-
-**1. Create a Turso database**
-
-1. Sign up at [app.turso.tech](https://app.turso.tech).
-2. Create a database.
-3. On the database page, copy its URL (`libsql://<db>-<org>.turso.io`) and create a token. Keep both at hand; the token is shown only once.
-
-**2. Deploy to Render**
-
-1. Sign up at [render.com](https://render.com).
-2. Click **Deploy to Render** at the top of this page.
-3. Fill in the values Render asks for:
+1. **Create a database.** In [app.turso.tech](https://app.turso.tech), create a database. Copy its URL (`libsql://<db>-<org>.turso.io`) and create a token for it. The token is shown only once.
+2. **Deploy.** Click **Deploy to Render** above and fill in:
 
    | Variable | Value |
    |---|---|
@@ -51,107 +37,124 @@ You can run Node-RED around the clock at no cost using Turso's free database and
    | `NODE_RED_USERNAME` | Editor login name you choose |
    | `NODE_RED_PASSWORD` | Editor password you choose |
 
-4. Click **Deploy**. When it finishes, open `https://<your-app>.onrender.com/red` and log in.
+3. **Sign in.** When the deploy finishes, open `https://<your-app>.onrender.com/red`.
 
-The service settings come from [render.yaml](render.yaml): free plan, Node 24, `npm install` then `npm start`.
+That's all. Keep-alive starts on its own; the log shows `Keep-alive: pinging https://<your-app>.onrender.com every 10 min`.
 
-**3. Keeping it awake (automatic)**
+Render's free plan gives 750 instance hours a month, and a 31-day month is 744 hours, so one always-on service fits. The hours are shared across your Render workspace. Free-plan limits change, so check Render's pricing page.
 
-Render's free services go to sleep after 15 minutes without traffic, and the next visit waits for a slow wake-up. To prevent this, the app pings its own public URL every 10 minutes. Render provides that URL as `RENDER_EXTERNAL_URL`, so there's nothing to set up. The startup log shows `Keep-alive: pinging https://<your-app>.onrender.com every 10 min`.
+## Choosing a database
 
-To turn it off, set `KEEP_ALIVE=false`.
+The first backend that's configured is used, and the startup log says which one, for example `Using turso storage`. Tables are created on first start.
 
-<details>
-<summary>Optional: external pinger with Google Apps Script</summary>
+| Backend | Set | Good for |
+|---|---|---|
+| [Turso](https://turso.tech) | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | Free hosted SQLite. The recommended default. |
+| PostgreSQL | `DATABASE_URL` | Any Postgres, including hosted ones like [Neon](https://neon.tech), Supabase or Render Postgres |
+| Local files | neither | Running on your own machine. Flows go to `flows.json`. |
 
-The built-in ping can't wake the app if it has stopped for some other reason. For an outside check as well:
+If both are set, Turso wins.
 
-1. Go to [script.google.com](https://script.google.com) and create a new project.
-2. Paste in [scripts/keep-alive.gs](scripts/keep-alive.gs), replacing the default code.
-3. Open **Project Settings** (gear icon), and under **Script properties** add `APP_URL` with your Render URL, e.g. `https://<your-app>.onrender.com/`.
-4. Back in the editor, select `setupTrigger` in the function list and click **Run**. Approve the permissions prompt.
+**Using Neon:** copy the connection string from the Neon console (direct or pooled) into `DATABASE_URL`. The free tier suspends the database when it's idle, so the first save or login after a quiet spell takes a moment longer while it wakes.
 
-Pings show under **Executions** in Apps Script. Run `removeTrigger` to stop them.
+**Moving from PostgreSQL to Turso:** set `DATABASE_URL`, `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, then run `npm run migrate:turso`. It copies every row and stops if the Turso tables already contain data. Back up Postgres first.
 
-</details>
+## Running locally
 
-Render's free plan includes 750 instance hours a month, and a 31-day month is 744 hours, so one service can stay up all month. The hours are shared across your Render workspace, so a second always-on free service would run out. Free-plan limits can change; check Render's current pricing page.
+Requires Node.js 22.9 or later (Node 24 recommended).
 
-> [!NOTE]
-> Render can still restart a free service now and then. Flows, credentials and settings are in Turso and survive restarts, but in-memory context data does not.
+```sh
+git clone https://github.com/e-labInnovations/ashad-red.git
+cd ashad-red
+npm install
+cp .env.example .env   # fill in, or remove the database lines to use local files
+npm start
+```
 
-### Other hosts
+Open <http://localhost:1880/red> for the editor and <http://localhost:1880> for the home page.
 
-Any Node.js host works: run `npm install`, then `npm start`, with Node 22.9 or later. `npm start` limits the Node.js heap to 384 MB (`--max-old-space-size=384`) to fit small instances; change it in `package.json` if you have more memory.
+For a local SQLite database instead of files, set `TURSO_DATABASE_URL=file:local.db`.
 
 ## Configuration
 
-All settings come from environment variables. Locally they're read from `.env`.
+Everything is set with environment variables. Locally they're read from `.env`; see [.env.example](.env.example).
 
-| Variable | Required | Description |
+| Variable | Default | Description |
 |---|---|---|
-| `TURSO_DATABASE_URL` | for Turso | `libsql://<db>-<org>.turso.io`, or `file:local.db` for a local SQLite file |
-| `TURSO_AUTH_TOKEN` | for Turso | Turso database token |
-| `DATABASE_URL` | for Postgres | PostgreSQL connection string. SSL is always on. |
-| `NODE_RED_USERNAME` | recommended | Editor login username |
-| `NODE_RED_PASSWORD` | recommended | Editor login password |
-| `APP_NAME` | no | Key for this instance's data in the database. Default `ashad-nodered`. Use different values to run several instances on one database. |
-| `PORT` | no | HTTP port. Default `1880`. Render sets this for you. |
-| `SECURE_LINK` | no | Stored with the flows on each save |
-| `UIBROOT` | no | Root folder for `node-red-contrib-uibuilder`. Default: project folder |
-| `KEEP_ALIVE` | no | Set to `false` to turn off the keep-alive ping |
-| `KEEP_ALIVE_URL` | no | URL to ping. Default: `RENDER_EXTERNAL_URL`, which Render sets. Set it on other hosts to enable the ping. |
-| `KEEP_ALIVE_INTERVAL` | no | Minutes between pings. Default `10` |
+| `TURSO_DATABASE_URL` | | Turso URL (`libsql://…`) or `file:local.db` |
+| `TURSO_AUTH_TOKEN` | | Turso database token |
+| `DATABASE_URL` | | PostgreSQL connection string. SSL is always on. |
+| `NODE_RED_USERNAME` | | Editor login name |
+| `NODE_RED_PASSWORD` | | Editor password |
+| `APP_NAME` | `ashad-nodered` | Key for this instance's data. Use different values to run several instances on one database. |
+| `PORT` | `1880` | HTTP port. Render sets this for you. |
+| `KEEP_ALIVE` | on | Set to `false` to turn off the keep-alive ping |
+| `KEEP_ALIVE_URL` | `RENDER_EXTERNAL_URL` | URL to ping. Set it to enable keep-alive on hosts other than Render. |
+| `KEEP_ALIVE_INTERVAL` | `10` | Minutes between pings |
+| `SECURE_LINK` | | Stored with the flows on each save |
+| `UIBROOT` | project folder | Root folder for `node-red-contrib-uibuilder` |
 
 > [!WARNING]
-> If `NODE_RED_USERNAME` and `NODE_RED_PASSWORD` aren't both set, the editor has no login and anyone who finds the URL can change your flows.
+> If `NODE_RED_USERNAME` and `NODE_RED_PASSWORD` aren't both set, the editor has no login and anyone who finds the URL can change your flows. The home page shows a red "no login set" status when this happens.
 
-## Storage
+## Good to know
 
-The first backend that's configured is used:
+- **Context isn't saved.** Values from `flow.set` and `global.set` live in memory and are lost on restart. Store anything important in a database node instead.
+- **Credentials aren't encrypted** (`credentialSecret: false`). They're stored in your database as plain text, so keep database access private.
+- **Disabled nodes:** `exec`, `file in` / `file`, `watch`, `tcp` and `udp`. Free hosts have no persistent disk and don't accept raw TCP or UDP, and `exec` would allow shell commands on the server. Change `nodesExcludes` in `settings.js` to turn them back on.
+- **Extra nodes:** install from **Manage palette**. A Render rebuild wipes them, but Node-RED reinstalls any your flows use at the next start, which makes that start slower. Add the package to `package.json` to avoid this.
+- **Function nodes** can `require` npm modules (`functionExternalModules`). `firebase-admin` is available as `global.get('firebaseAdmin')`.
+- **CORS:** HTTP-in endpoints accept requests from any origin (`httpNodeCors`).
+- **Theme:** the editor follows the OS light/dark setting until a user picks one in *User Settings*.
+- **Restarts:** Render can still restart a free service now and then. Your data is safe in the database; only in-memory context is lost.
 
-1. **Turso**, when `TURSO_DATABASE_URL` is set
-2. **PostgreSQL**, when `DATABASE_URL` is set
-3. **Local files** (`flows.json`) otherwise
+<details>
+<summary>Optional: an outside keep-alive with Google Apps Script</summary>
 
-The startup log shows which one is in use, for example `Using turso storage`. Tables are created on first start.
+The built-in ping can't wake the app if it has stopped for another reason. For an outside check:
 
-Flows, credentials, user settings and library entries are stored. Credentials are **not encrypted** (`credentialSecret: false`), so keep database access private.
+1. Create a project at [script.google.com](https://script.google.com) and paste in [scripts/keep-alive.gs](scripts/keep-alive.gs).
+2. In **Project Settings → Script properties**, add `APP_URL` with your app's URL.
+3. Run `setupTrigger` and approve the permissions prompt. It pings every 10 minutes; run `removeTrigger` to stop.
 
-Context data (`flow.set` / `global.set`) is kept in memory and is lost on restart.
+</details>
 
-### Moving from PostgreSQL to Turso
+## How it works
 
-```sh
-# with DATABASE_URL, TURSO_DATABASE_URL and TURSO_AUTH_TOKEN all set
-npm run migrate:turso
+```
+settings.js ─┬─ db.js ── picks tursoutil.js, pgutil.js, or none (local files)
+             ├─ dbstorage.js ── Node-RED storage API → selected database
+             ├─ keepalive.js ── pings RENDER_EXTERNAL_URL every 10 min
+             └─ editor/default-theme.js ── editor theme defaults to System
+public/ ── home page at /        editor at /red
 ```
 
-This copies every row from Postgres to Turso. It stops if the Turso tables already contain data, so nothing is duplicated. Back up Postgres first. Once the copy succeeds, keep `TURSO_DATABASE_URL` set (Turso takes priority) and remove `DATABASE_URL` when you no longer need it.
-
-## Editor and runtime notes
-
-- **Theme:** new browsers get the *System* theme, which follows the OS light/dark setting. Each user can change it in *User Settings*; the choice is saved per browser. The login page is always light.
-- **Disabled core nodes:** `exec`, `file in` / `file`, `watch`, `tcp` and `udp` are turned off (`nodesExcludes` in `settings.js`). Hosts like Render have no persistent disk and don't accept raw TCP/UDP traffic, and `exec` would allow shell commands on the server.
-- **Function nodes:** can load npm modules (`functionExternalModules: true`). `firebase-admin` is available as `global.get('firebaseAdmin')`.
-- **Extra nodes:** install them from the palette manager, or add the package to `package.json` and redeploy. A rebuild on Render wipes palette installs, but `externalModules.autoInstall` reinstalls any module your flows use at the next start, which slows that start. Add the package to `package.json` to avoid this.
-- **CORS:** HTTP-in endpoints allow any origin (`httpNodeCors` in `settings.js`).
-
-## Project layout
+[dbstorage.js](dbstorage.js) implements Node-RED's [storage API](https://nodered.org/docs/api/storage/). All data for one instance is a row in `eConfigs`, keyed by `APP_NAME`; library entries are in `eLibs`.
 
 | Path | Purpose |
 |---|---|
-| `settings.js` | Node-RED settings; picks the storage backend and sets up the login |
-| `db.js` | Chooses Turso, Postgres or none from the environment |
-| `dbstorage.js` | Node-RED storage module that uses the selected database |
-| `tursoutil.js` / `pgutil.js` | Turso and PostgreSQL queries |
-| `scripts/migrate-pg-to-turso.js` | One-off Postgres → Turso copy |
-| `keepalive.js` | Pings the app's own URL so free hosts don't put it to sleep |
-| `scripts/keep-alive.gs` | Google Apps Script that keeps a Render free service awake |
-| `render.yaml` | Render Blueprint used by the deploy button |
-| `editor/default-theme.js` | Sets the editor's default theme to *System* |
-| `public/` | Static site served at `/` |
+| `settings.js` | Node-RED settings: storage, login, disabled nodes, theme |
+| `db.js` | Chooses the database from the environment |
+| `dbstorage.js` | Node-RED storage module |
+| `tursoutil.js`, `pgutil.js` | Turso and PostgreSQL queries |
+| `keepalive.js` | Self-ping that keeps free hosts awake |
+| `render.yaml` | Render Blueprint behind the deploy button |
+| `scripts/` | Postgres → Turso migration and the Apps Script pinger |
+| `public/` | Home page |
+
+## Contributing
+
+Issues and pull requests are welcome.
+
+1. Fork the repo and create a branch.
+2. Run it locally (see [Running locally](#running-locally)). Test your change with no database, and with `TURSO_DATABASE_URL=file:local.db`.
+3. If you touch storage, check that flows, login and library entries survive a restart.
+4. Open a pull request describing what changed and how you tested it.
+
+Found a bug or have an idea? [Open an issue](https://github.com/e-labInnovations/ashad-red/issues).
 
 ## License
 
 [Apache 2.0](LICENSE)
+
+Node-RED is a project of the [OpenJS Foundation](https://openjsf.org). ashad-red is an independent project and isn't affiliated with or endorsed by Node-RED or the OpenJS Foundation.
