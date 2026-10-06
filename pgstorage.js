@@ -17,7 +17,6 @@
 
 var when = require('when')
 var pgutil = require('./pgutil')
-const e = require('express')
 
 var settings
 var appname
@@ -32,9 +31,7 @@ function timeoutWrap(func) {
       console.log('func', func)
       console.log('timeout err', err)
       console.log('TIMEOUT: ', func.name)
-      if (err == 'timeout') {
-        reject(err)
-      }
+      reject(err)
     })
   })
 }

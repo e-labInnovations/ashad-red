@@ -1,6 +1,9 @@
 {
     "name": "ashad-red",
     "version": "0.0.2",
+    "engines": {
+        "node": ">=22.9"
+    },
     "scripts": {
         "start": "node --max-old-space-size=384 node_modules/node-red/red.js --settings ./settings.js"
      },
@@ -9,7 +12,7 @@
         "feedparser": "~0.19.2",
         "firebase-admin": "^10.0.2",
         "nano": "~5.11.0",
-        "node-red": "^3.0.2",
+        "node-red": "^5.0.7",
         "pg": "^8.3.0",
         "redis": "~0.10.1",
         "when": "~3.x"

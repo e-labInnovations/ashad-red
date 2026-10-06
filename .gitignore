@@ -1,3 +1,11 @@
 node_modules
 .env
 tkmcebot-firebase-adminsdk-vqdit-1a0432bc4e.json
+
+# Local file storage (when DATABASE_URL is unset)
+flows.json
+flows_cred.json
+.flows*.json.backup
+.config.*.json
+.config.*.json.backup
+lib/

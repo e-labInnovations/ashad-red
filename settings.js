@@ -264,8 +264,6 @@ var settings = module.exports = {
  *  - externalModules
  ******************************************************************************/
 
-    storageModule: require("./pgstorage"),
-
     /** Uncomment the following to run node-red in your preferred language.
      * Available languages include: en-US (default), ja, de, zh-CN, zh-TW, ru, ko
      * Some languages are more complete than others.
@@ -390,9 +388,6 @@ var settings = module.exports = {
          * a collection of themes to chose from.
          */
         //theme: "",
-        page: {
-            css: path.join(__dirname,"public/css/midnight-red.css")
-        },
         /** To disable the 'Welcome to Node-RED' tour that is displayed the first
          * time you access the editor for each release of Node-RED, set this to false
          */
@@ -587,5 +582,15 @@ if (process.env.NODE_RED_USERNAME && process.env.NODE_RED_PASSWORD) {
 }
 
 settings.pgAppname = process.env.APP_NAME || 'ashad-nodered';
-pgutil.initPG();
-pgutil.createTable();
+
+if (process.env.DATABASE_URL) {
+    settings.storageModule = require("./pgstorage");
+    pgutil.initPG();
+    pgutil.createTable().catch(function(err) {
+        console.error('Failed to create pg tables:', err.message);
+    });
+} else {
+    // No database: fall back to Node-RED's default file storage in userDir
+    console.log('DATABASE_URL not set, using local file storage (flows.json)');
+    settings.flowFile = 'flows.json';
+}
