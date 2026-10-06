@@ -9,3 +9,6 @@ flows_cred.json
 .config.*.json
 .config.*.json.backup
 lib/
+
+# macOS Finder metadata
+.DS_Store
