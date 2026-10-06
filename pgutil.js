@@ -8,10 +8,14 @@ let pool
 const initPG = () => {
   if (pool) return pool
   const pgUrl = process.env.DATABASE_URL
-  console.log('pgUrl', pgUrl)
   pool = new pg.Pool({ 
     connectionString: pgUrl,
     ssl: { rejectUnauthorized: false }
+  })
+  // Hosts like Neon close idle connections when they scale to zero; without
+  // this listener pg would throw that as an uncaught error and crash Node-RED
+  pool.on('error', (err) => {
+    console.warn('Postgres idle connection closed: ' + err.message)
   })
   return pool
 }

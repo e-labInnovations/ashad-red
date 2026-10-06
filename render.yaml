@@ -15,6 +15,9 @@ services:
         sync: false
       - key: TURSO_AUTH_TOKEN
         sync: false
+      # Or use Postgres (e.g. Neon): leave the two Turso values blank
+      - key: DATABASE_URL
+        sync: false
       - key: NODE_RED_USERNAME
         sync: false
       - key: NODE_RED_PASSWORD

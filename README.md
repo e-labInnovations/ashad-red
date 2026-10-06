@@ -34,6 +34,7 @@ You need free accounts on [Turso](https://turso.tech) and [Render](https://rende
    |---|---|
    | `TURSO_DATABASE_URL` | Database URL from step 1 |
    | `TURSO_AUTH_TOKEN` | Token from step 1 |
+   | `DATABASE_URL` | Leave blank. For Neon instead of Turso, put the Neon connection string here and leave the two Turso fields blank. |
    | `NODE_RED_USERNAME` | Editor login name you choose |
    | `NODE_RED_PASSWORD` | Editor password you choose |
 
