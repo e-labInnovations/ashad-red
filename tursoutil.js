@@ -5,6 +5,30 @@ require('dotenv').config()
 
 let client
 
+// Network errors worth retrying, e.g. a pooled HTTPS connection that Turso
+// already closed ("fetch failed" / "other side closed")
+const TRANSIENT_CODES = ['UND_ERR_SOCKET', 'ECONNRESET', 'ETIMEDOUT', 'EPIPE', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT']
+
+const isTransient = (err) =>
+  !!err &&
+  (err.message === 'fetch failed' ||
+    TRANSIENT_CODES.includes(err.code) ||
+    TRANSIENT_CODES.includes(err.cause && err.cause.code))
+
+// Retries twice (after 200 ms and 600 ms), well inside dbstorage's 5 s timeout
+const withRetry = async (fn) => {
+  const delays = [200, 600]
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      if (attempt >= delays.length || !isTransient(err)) throw err
+      console.warn('Turso request failed (' + ((err.cause && err.cause.code) || err.code || err.message) + '), retrying')
+      await new Promise((r) => setTimeout(r, delays[attempt]))
+    }
+  }
+}
+
 const init = () => {
   if (client) return client
   client = createClient({
@@ -17,7 +41,7 @@ const init = () => {
 const createTable = async () => {
   if (!client) throw new Error('No Turso client')
   console.log('create turso tables')
-  await client.batch(
+  await withRetry(() => client.batch(
     [
       `CREATE TABLE IF NOT EXISTS "eConfigs" (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,17 +68,17 @@ const createTable = async () => {
       )`
     ],
     'write'
-  )
+  ))
   // Added after the first release; add it to tables created before then
-  const cols = await client.execute('PRAGMA table_info("eConfigs")')
+  const cols = await withRetry(() => client.execute('PRAGMA table_info("eConfigs")'))
   if (!cols.rows.some((r) => r.name === 'sessions')) {
-    await client.execute('ALTER TABLE "eConfigs" ADD COLUMN sessions TEXT')
+    await withRetry(() => client.execute('ALTER TABLE "eConfigs" ADD COLUMN sessions TEXT'))
   }
 }
 
 const doSQL = async (sql, args) => {
   if (!client) throw new Error('No Turso client')
-  const result = await client.execute({ sql, args: args || [] })
+  const result = await withRetry(() => client.execute({ sql, args: args || [] }))
   // Convert libSQL rows to plain objects keyed by column name
   const rows = result.rows.map((row) => {
     const obj = {}
@@ -199,6 +223,7 @@ const removePrivateNodes = async (appname) => {
 }
 
 exports.kind = 'turso'
+exports.isTransient = isTransient
 exports.init = init
 exports.createTable = createTable
 exports.loadConfig = loadConfig

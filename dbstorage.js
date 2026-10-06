@@ -28,9 +28,8 @@ function timeoutWrap(func) {
       resolve(a, b, c, d)
     })
     promise.otherwise(function (err) {
-      console.log('func', func)
-      console.log('timeout err', err)
-      console.log('TIMEOUT: ', func.name)
+      var detail = err && err.cause && err.cause.code ? ' (' + err.cause.code + ')' : ''
+      console.error('Storage error: ' + (err && err.message ? err.message : err) + detail)
       reject(err)
     })
   })
