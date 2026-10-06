@@ -43,6 +43,7 @@ const createTable = async () => {
       "packageName" text,
       data text
     );
+    ALTER TABLE "eConfigs" ADD COLUMN IF NOT EXISTS sessions text;
   `
   await doSQL(query, null)
 }
@@ -75,33 +76,24 @@ const loadConfig = async (appname) => {
   return null
 }
 
+const CONFIG_COLUMNS = ['flows', 'credentials', 'packages', 'settings', 'secureLink', 'sessions']
+
 const saveConfig = async (appname, params) => {
-  const columns = [
-    'appname',
-    'flows',
-    'credentials',
-    'packages',
-    'settings',
-    'secureLink',
-    'id'
-  ]
-  let data = await loadConfig(appname)
-  let query
-  let values
-  if (data) {
-    data = Object.assign(data, params)
-    query =
-      'UPDATE "eConfigs" SET appname = $1, flows = $2, credentials = $3, packages = $4, settings = $5, "secureLink" = $6 WHERE id = $7 RETURNING *'
-    values = columns.map((c) => (data[c] ? JSON.stringify(data[c]) : ''))
+  // Write only the columns being saved, so concurrent saves of different
+  // columns (e.g. flows and sessions) can't overwrite each other
+  const cols = CONFIG_COLUMNS.filter((c) => c in params)
+  const encode = (v) => (v ? JSON.stringify(v) : '')
+  const key = JSON.stringify(appname)
+  const existing = await doSQL('SELECT id FROM "eConfigs" WHERE appname = $1', [key])
+  if (existing.rowCount > 0) {
+    if (!cols.length) return
+    const sets = cols.map((c, i) => `"${c}" = $${i + 1}`).join(', ')
+    await doSQL(`UPDATE "eConfigs" SET ${sets} WHERE appname = $${cols.length + 1}`, [...cols.map((c) => encode(params[c])), key])
   } else {
-    data = params
-    query =
-      'INSERT INTO "eConfigs"(appname, flows, credentials, packages, settings, "secureLink") VALUES($1, $2, $3, $4, $5, $6) RETURNING *'
-    values = columns
-      .slice(0, 6)
-      .map((c) => (data[c] ? JSON.stringify(data[c]) : ''))
+    const allCols = ['appname', ...cols]
+    const query = `INSERT INTO "eConfigs"(${allCols.map((c) => `"${c}"`).join(', ')}) VALUES(${allCols.map((c, i) => `$${i + 1}`).join(', ')})`
+    await doSQL(query, [key, ...cols.map((c) => encode(params[c]))])
   }
-  await doSQL(query, values)
 }
 
 const removeConfig = async (appname) => {

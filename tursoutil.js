@@ -45,6 +45,11 @@ const createTable = async () => {
     ],
     'write'
   )
+  // Added after the first release; add it to tables created before then
+  const cols = await client.execute('PRAGMA table_info("eConfigs")')
+  if (!cols.rows.some((r) => r.name === 'sessions')) {
+    await client.execute('ALTER TABLE "eConfigs" ADD COLUMN sessions TEXT')
+  }
 }
 
 const doSQL = async (sql, args) => {
@@ -80,33 +85,24 @@ const loadConfig = async (appname) => {
   return null
 }
 
+const CONFIG_COLUMNS = ['flows', 'credentials', 'packages', 'settings', 'secureLink', 'sessions']
+
 const saveConfig = async (appname, params) => {
-  const columns = [
-    'appname',
-    'flows',
-    'credentials',
-    'packages',
-    'settings',
-    'secureLink',
-    'id'
-  ]
-  let data = await loadConfig(appname)
-  let query
-  let values
-  if (data) {
-    data = Object.assign(data, params)
-    query =
-      'UPDATE "eConfigs" SET appname = ?, flows = ?, credentials = ?, packages = ?, settings = ?, "secureLink" = ? WHERE id = ?'
-    values = columns.map((c) => (data[c] ? JSON.stringify(data[c]) : ''))
+  // Write only the columns being saved, so concurrent saves of different
+  // columns (e.g. flows and sessions) can't overwrite each other
+  const cols = CONFIG_COLUMNS.filter((c) => c in params)
+  const encode = (v) => (v ? JSON.stringify(v) : '')
+  const key = JSON.stringify(appname)
+  const existing = await doSQL('SELECT id FROM "eConfigs" WHERE appname = ?', [key])
+  if (existing.rowCount > 0) {
+    if (!cols.length) return
+    const sets = cols.map((c) => `"${c}" = ?`).join(', ')
+    await doSQL(`UPDATE "eConfigs" SET ${sets} WHERE appname = ?`, [...cols.map((c) => encode(params[c])), key])
   } else {
-    data = params
-    query =
-      'INSERT INTO "eConfigs"(appname, flows, credentials, packages, settings, "secureLink") VALUES(?, ?, ?, ?, ?, ?)'
-    values = columns
-      .slice(0, 6)
-      .map((c) => (data[c] ? JSON.stringify(data[c]) : ''))
+    const allCols = ['appname', ...cols]
+    const query = `INSERT INTO "eConfigs"(${allCols.map((c) => `"${c}"`).join(', ')}) VALUES(${allCols.map(() => '?').join(', ')})`
+    await doSQL(query, [key, ...cols.map((c) => encode(params[c]))])
   }
-  await doSQL(query, values)
 }
 
 const removeConfig = async (appname) => {

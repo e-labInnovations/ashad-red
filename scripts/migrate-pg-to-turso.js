@@ -7,7 +7,7 @@ const pg = require('pg')
 const turso = require('../tursoutil')
 
 const TABLES = {
-  eConfigs: ['appname', 'flows', 'credentials', 'packages', 'settings', 'secureLink'],
+  eConfigs: ['appname', 'flows', 'credentials', 'packages', 'settings', 'secureLink', 'sessions'],
   eLibs: ['appname', 'type', 'path', 'meta', 'body'],
   ePrivateNodes: ['appname', 'packageName', 'data']
 }

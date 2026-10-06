@@ -121,6 +121,29 @@ function saveSettings(settings) {
   })
 }
 
+// Editor login sessions, so users stay signed in across restarts
+function getSessions() {
+  return when.promise(async (resolve, reject, notify) => {
+    try {
+      const data = await db.loadConfig(appname)
+      resolve((data && data.sessions) || {})
+    } catch (err) {
+      reject(err)
+    }
+  })
+}
+
+function saveSessions(sessions) {
+  return when.promise(async (resolve, reject, notify) => {
+    try {
+      await db.saveConfig(appname, { sessions })
+      resolve()
+    } catch (err) {
+      reject(err)
+    }
+  })
+}
+
 function getLibraryEntry(type, path) {
   console.log('getLibraryEntry')
   return when.promise(async (resolve, reject, notify) => {
@@ -214,6 +237,16 @@ var dbstorage = {
   saveSettings: function (data) {
     return timeoutWrap(function () {
       return saveSettings(data)
+    })
+  },
+
+  getSessions: function () {
+    return timeoutWrap(getSessions)
+  },
+
+  saveSessions: function (sessions) {
+    return timeoutWrap(function () {
+      return saveSessions(sessions)
     })
   },
 
