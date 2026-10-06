@@ -6,6 +6,7 @@ require('dotenv').config()
 let pool
 
 const initPG = () => {
+  if (pool) return pool
   const pgUrl = process.env.DATABASE_URL
   console.log('pgUrl', pgUrl)
   pool = new pg.Pool({ 
@@ -214,6 +215,8 @@ const removePrivateNodes = async (appname) => {
   await doSQL(query, [JSON.stringify(appname)])
 }
 
+exports.kind = 'postgres'
+exports.init = initPG
 exports.initPG = initPG
 exports.createTable = createTable
 exports.loadConfig = loadConfig

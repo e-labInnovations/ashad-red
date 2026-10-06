@@ -22,7 +22,7 @@
 
 var path = require("path");
 var when = require("when");
-var pgutil = require('./pgutil');
+var db = require('./db');
 require('dotenv').config()
 
 process.env.NODE_RED_HOME = __dirname;
@@ -41,7 +41,8 @@ var settings = module.exports = {
     /** The file containing the flows. If not set, defaults to flows_<hostname>.json **/
     // flowFile: 'flows.json',
 
-    nodesExcludes:[ '66-mongodb.js','75-exec.js','35-arduino.js','36-rpi-gpio.js','25-serial.js','28-tail.js','50-file.js','31-tcpin.js','32-udp.js','23-watch.js' ],
+    /** Core node files to disable (names from @node-red/nodes/core): exec, file in/out, watch, tcp, udp */
+    nodesExcludes:[ '90-exec.js','10-file.js','23-watch.js','31-tcpin.js','32-udp.js' ],
 
     /** By default, credentials are encrypted in storage using a generated key. To
      * specify your own secret, set the following property.
@@ -388,6 +389,10 @@ var settings = module.exports = {
          * a collection of themes to chose from.
          */
         //theme: "",
+        page: {
+            /** Default the light/dark setting to "System" for new browsers */
+            scripts: [ path.join(__dirname, "editor/default-theme.js") ]
+        },
         /** To disable the 'Welcome to Node-RED' tour that is displayed the first
          * time you access the editor for each release of Node-RED, set this to false
          */
@@ -583,14 +588,13 @@ if (process.env.NODE_RED_USERNAME && process.env.NODE_RED_PASSWORD) {
 
 settings.pgAppname = process.env.APP_NAME || 'ashad-nodered';
 
-if (process.env.DATABASE_URL) {
-    settings.storageModule = require("./pgstorage");
-    pgutil.initPG();
-    pgutil.createTable().catch(function(err) {
-        console.error('Failed to create pg tables:', err.message);
-    });
+if (db) {
+    console.log('Using ' + db.kind + ' storage');
+    settings.storageModule = require("./dbstorage");
 } else {
     // No database: fall back to Node-RED's default file storage in userDir
-    console.log('DATABASE_URL not set, using local file storage (flows.json)');
+    console.log('No TURSO_DATABASE_URL or DATABASE_URL set, using local file storage (flows.json)');
     settings.flowFile = 'flows.json';
 }
+
+require('./keepalive').start();

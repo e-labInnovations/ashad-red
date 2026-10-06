@@ -1,0 +1,21 @@
+# Render Blueprint, used by the "Deploy to Render" button.
+# Values marked sync: false are asked for when the blueprint is deployed.
+services:
+  - type: web
+    name: ashad-red
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: NODE_RED_USERNAME
+        sync: false
+      - key: NODE_RED_PASSWORD
+        sync: false

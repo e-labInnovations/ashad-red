@@ -16,7 +16,7 @@
  **/
 
 var when = require('when')
-var pgutil = require('./pgutil')
+var db = require('./db')
 
 var settings
 var appname
@@ -40,7 +40,7 @@ function getFlows() {
   console.log('getFlows')
   return when.promise(async (resolve, reject, notify) => {
     try {
-      const data = await pgutil.loadConfig(appname)
+      const data = await db.loadConfig(appname)
       if (data && data.flows) {
         resolve(data.flows)
       } else {
@@ -57,7 +57,7 @@ function saveFlows(flows) {
   return when.promise(async (resolve, reject, notify) => {
     try {
       let secureLink = process.env.SECURE_LINK
-      await pgutil.saveConfig(appname, { appname, flows, secureLink })
+      await db.saveConfig(appname, { appname, flows, secureLink })
       resolve()
     } catch (err) {
       reject(err)
@@ -69,7 +69,7 @@ function getCredentials() {
   console.log('getCredentials')
   return when.promise(async (resolve, reject, notify) => {
     try {
-      const data = await pgutil.loadConfig(appname)
+      const data = await db.loadConfig(appname)
       if (data && data.credentials) {
         resolve(data.credentials)
       } else {
@@ -85,7 +85,7 @@ function saveCredentials(credentials) {
   console.log('saveCredentials')
   return when.promise(async (resolve, reject, notify) => {
     try {
-      await pgutil.saveConfig(appname, { appname, credentials })
+      await db.saveConfig(appname, { appname, credentials })
       resolve()
     } catch (err) {
       reject(err)
@@ -97,7 +97,7 @@ function getSettings() {
   console.log('getSettings')
   return when.promise(async (resolve, reject, notify) => {
     try {
-      const data = await pgutil.loadConfig(appname)
+      const data = await db.loadConfig(appname)
       if (data && data.settings) {
         resolve(data.settings)
       } else {
@@ -113,7 +113,7 @@ function saveSettings(settings) {
   console.log('saveSettings')
   return when.promise(async (resolve, reject, notify) => {
     try {
-      await pgutil.saveConfig(appname, { appname, settings })
+      await db.saveConfig(appname, { appname, settings })
       resolve()
     } catch (err) {
       reject(err)
@@ -125,14 +125,14 @@ function getLibraryEntry(type, path) {
   console.log('getLibraryEntry')
   return when.promise(async (resolve, reject, notify) => {
     try {
-      const data = await pgutil.loadLib(appname, type, path)
+      const data = await db.loadLib(appname, type, path)
       if (data && data.body) {
         resolve(data.body)
       } else {
         if (path != '' && path.substr(-1) != '/') {
           path = path + '/'
         }
-        let list = await pgutil.loadLibList(appname, type, path)
+        let list = await db.loadLibList(appname, type, path)
         let dirs = []
         let files = []
         for (var i = 0; i < list.length; i++) {
@@ -159,7 +159,7 @@ function saveLibraryEntry(type, path, meta, body) {
   console.log('saveLibraryEntry')
   return when.promise(async (resolve, reject, notify) => {
     try {
-      await pgutil.saveLib(appname, {
+      await db.saveLib(appname, {
         appname,
         type,
         path,
@@ -173,14 +173,16 @@ function saveLibraryEntry(type, path, meta, body) {
   })
 }
 
-var pgstorage = {
+var dbstorage = {
   init: function (_settings) {
     settings = _settings
     appname = settings.pgAppname || require('os').hostname()
     return when.promise(async (resolve, reject, notify) => {
       try {
-        const _pool = pgutil.initPG()
-        resolve(_pool)
+        const _client = db.init()
+        // Tables must exist before Node-RED's first getSettings/getFlows
+        await db.createTable()
+        resolve(_client)
       } catch (err) {
         reject(err)
       }
@@ -239,4 +241,4 @@ var pgstorage = {
   }
 }
 
-module.exports = pgstorage
+module.exports = dbstorage
