@@ -1,127 +1,436 @@
 <!DOCTYPE html>
-<html lang="en"><head>
+<html lang="en">
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Node-RED in Heroku</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ashad-red: Node-RED</title>
+<meta name="description" content="A Node-RED 5 instance that saves its flows to a database and stays awake on free hosting.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="images/node-red-icon.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --canvas: #eef0f2;
+    --grid-dot: #d3d7db;
+    --surface: #ffffff;
+    --ink: #1e2329;
+    --ink-soft: #545c66;
+    --rule: #d7dbe0;
+    --brand: #8f0000;
+    --brand-ink: #ffffff;
+    --wire: #9aa0a6;
+    --port: #d9d9d9;
+    --port-edge: #8a8f95;
+    --node-edge: #8a8f95;
+    --inject: #a6bbcf;
+    --function: #fdd0a2;
+    --debug: #87a980;
+    --node-ink: #1e2329;
+    --status-ok: #4caf50;
+    --status-warn: #d32f2f;
+    --status-idle: #9aa0a6;
+    --focus: #2f6fdd;
+    --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --canvas: #202327;
+        --grid-dot: #34383d;
+        --surface: #17191c;
+        --ink: #e6e8eb;
+        --ink-soft: #a3a9b1;
+        --rule: #33373c;
+        --brand: #b3261e;
+        --wire: #7d838a;
+        --port: #4a4f55;
+        --port-edge: #8a8f95;
+        --node-edge: #5f656c;
+        --focus: #7aa7ff;
+    }
+}
 
-	<link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
-    <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--ink);
+    font: 400 17px/1.6 var(--sans);
+}
+a { color: inherit; }
+a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+code { font: 500 0.88em var(--mono); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
 
-	<link href="css/simplegrid.css" rel="stylesheet" media="screen">
-	<link href="css/style.css" rel="stylesheet" media="screen">
+/* Header */
+.site-header { background: var(--ink); color: var(--surface); }
+@media (prefers-color-scheme: dark) { .site-header { background: #000; color: var(--ink); } }
+.site-header .wrap { display: flex; align-items: center; justify-content: space-between; height: 52px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; letter-spacing: 0.01em; }
+.brand img { width: 26px; height: 26px; }
+.site-header nav a { font-size: 15px; text-decoration: none; opacity: 0.85; }
+.site-header nav a:hover { opacity: 1; text-decoration: underline; }
 
+/* Hero */
+.hero {
+    background-color: var(--canvas);
+    background-image: radial-gradient(var(--grid-dot) 1px, transparent 1.2px);
+    background-size: 20px 20px;
+    border-bottom: 1px solid var(--rule);
+    padding: 64px 0 72px;
+}
+.hero h1 {
+    font-size: clamp(36px, 6vw, 60px);
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 16px;
+    max-width: 20ch;
+}
+.hero .lede { font-size: 19px; color: var(--ink-soft); max-width: 52ch; margin: 0 0 48px; }
 
+/* Flow */
+.flow { position: relative; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 160px; max-width: 860px; }
+.flow svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.wire { fill: none; stroke: var(--wire); stroke-width: 3; stroke-linecap: round; }
+.msg { fill: var(--brand); }
+.targets { display: grid; row-gap: 30px; }
+
+.node {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    min-height: 50px;
+    border: 1px solid var(--node-edge);
+    border-radius: 6px;
+    color: var(--node-ink);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 17px;
+    z-index: 1;
+}
+.node .icon {
+    display: grid; place-items: center;
+    width: 40px;
+    border-right: 1px solid rgba(0,0,0,0.12);
+    background: rgba(0,0,0,0.1);
+    border-radius: 5px 0 0 5px;
+}
+/* Node-RED's own node icons: white glyphs on a 40x60 canvas */
+.node .icon svg { position: static; width: 20px; height: 30px; fill: #fff; }
+.node .icon svg.stroke { fill: none; stroke: #fff; stroke-width: 3; }
+.node .label { display: flex; align-items: center; padding: 10px 22px 10px 16px; line-height: 1.3; }
+.node .port {
+    position: absolute; top: 50%;
+    width: 11px; height: 11px; margin-top: -5.5px;
+    background: var(--port); border: 1px solid var(--port-edge); border-radius: 3px;
+}
+.node .port.in { left: -6px; }
+.node .port.out { right: -6px; }
+
+a.node { transition: transform 120ms ease, box-shadow 120ms ease; }
+a.node:hover { transform: translateY(-1px); box-shadow: 0 0 0 3px rgba(255,127,14,0.55); }
+a.node:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+
+.node.source { background: var(--inject); }
+.node.source .tab {
+    /* Ends at the node's outer edge so it never covers the icon or border */
+    position: absolute; left: -17px; top: 50%; margin-top: -11px;
+    width: 16px; height: 22px;
+    background: var(--inject); border: 1px solid var(--node-edge); border-right: 0; border-radius: 5px 0 0 5px;
+}
+.node.editor { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 600; font-size: 19px; min-height: 60px; }
+.node.editor .icon { border-right-color: rgba(255,255,255,0.25); background: rgba(0,0,0,0.18); }
+.node.deploy { background: var(--function); }
+.node.docs { background: var(--debug); }
+
+.target { display: grid; justify-items: start; row-gap: 6px; }
+.status { display: flex; align-items: center; gap: 7px; margin-left: 4px; font-size: 14px; color: var(--ink-soft); min-height: 20px; }
+.status .shape { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--status-idle); }
+.status[data-state="locked"] .shape { border-color: var(--status-ok); }
+.status[data-state="open"] .shape { background: var(--status-warn); border-color: var(--status-warn); }
+.status[data-state="down"] .shape { border-color: var(--status-idle); }
+
+@media (max-width: 640px) {
+    .hero { padding: 40px 0 48px; }
+    .hero .lede { font-size: 17px; margin-bottom: 36px; }
+    .flow { column-gap: 40px; }
+    .node.source { margin-left: 16px; }
+    .node.source .label { display: none; }
+    .node.source .icon { border-right: 0; border-radius: 5px; }
+    .targets { row-gap: 22px; }
+    .node { font-size: 15px; min-height: 46px; }
+    .node .icon { width: 34px; }
+    .node .label { padding: 8px 14px 8px 12px; }
+    .node.editor { font-size: 16px; min-height: 52px; }
+}
+
+/* Content sections */
+section.block { padding: 64px 0; border-bottom: 1px solid var(--rule); }
+section.block:last-of-type { border-bottom: 0; }
+.block h2 { font-size: 28px; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; }
+.block .intro { color: var(--ink-soft); margin: 0 0 32px; max-width: 60ch; }
+.block p, .block li { max-width: 64ch; }
+
+.facts { display: grid; grid-template-columns: 200px 1fr; margin: 0; border-top: 1px solid var(--rule); }
+.facts dt, .facts dd { padding: 16px 0; border-bottom: 1px solid var(--rule); margin: 0; }
+.facts dt { font-weight: 600; padding-right: 24px; }
+.facts dd { color: var(--ink-soft); }
+@media (max-width: 640px) {
+    .facts { grid-template-columns: 1fr; }
+    .facts dt { border-bottom: 0; padding-bottom: 0; }
+    .facts dd { padding-top: 4px; }
+}
+
+.steps { list-style: none; counter-reset: step; padding: 0; margin: 0; display: grid; gap: 24px; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 40px 1fr; column-gap: 16px; }
+.steps li::before {
+    content: counter(step);
+    display: grid; place-items: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--brand); color: var(--brand);
+    font-weight: 600; font-size: 15px;
+}
+@media (prefers-color-scheme: dark) { .steps li::before { border-color: var(--ink-soft); color: var(--ink); } }
+.steps h3 { font-size: 18px; font-weight: 600; margin: 3px 0 4px; }
+.steps p { margin: 0; color: var(--ink-soft); }
+.deploy-btn { display: inline-block; margin-top: 12px; }
+.deploy-btn img { display: block; height: 40px; }
+
+.custom h3 { font-size: 18px; font-weight: 600; margin: 32px 0 6px; }
+.custom h3:first-of-type { margin-top: 0; }
+.custom p { margin: 0; color: var(--ink-soft); }
+
+footer { background: var(--canvas); border-top: 1px solid var(--rule); padding: 28px 0; font-size: 15px; color: var(--ink-soft); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+
+@media (prefers-reduced-motion: reduce) {
+    a.node { transition: none; }
+    a.node:hover { transform: none; }
+}
+</style>
 </head>
 <body>
 
-<div class="header">
-    <div class="header-content">
-        <a href="/"><img class="logo" src="images/node-red.png" /> Node-RED in Heroku</a>
+<header class="site-header">
+    <div class="wrap">
+        <a class="brand" href="/"><img src="images/node-red-icon.svg" alt="" width="26" height="26">ashad-red</a>
+        <nav><a href="https://github.com/e-labInnovations/ashad-red">Source on GitHub</a></nav>
     </div>
-</div>
-<!-- Grid 1 -->
-<div class="title">
-    <div class="grid">
-        <div class="col-1-1">
-            <div class="content">
-                <h1>Node-RED in Heroku</h1>
-                <h2>A visual tool for wiring the Internet of Things</h2>
-                <img src="images/node-red-title-flow.png" />
+</header>
+
+<main>
+    <div class="hero">
+        <div class="wrap">
+            <h1>Node-RED, always on.</h1>
+            <p class="lede">This server runs Node-RED 5. It saves your flows to a database, so they survive restarts, and keeps itself awake on free hosting.</p>
+
+            <div class="flow" id="flow">
+                <svg aria-hidden="true" id="wires"></svg>
+
+                <div class="node source" id="src" aria-hidden="true">
+                    <span class="tab"></span>
+                    <span class="icon"><svg viewBox="0 0 40 60"><path d="M18 5v12H7v9h15v-7l6 11-6 12v-8H7v9h11v12l14-25z"/></svg></span>
+                    <span class="label">You're here</span>
+                    <span class="port out"></span>
+                </div>
+
+                <div class="targets">
+                    <div class="target">
+                        <a class="node editor" href="red/" data-wire>
+                            <span class="port in"></span>
+                            <span class="icon"><svg viewBox="0 0 40 60"><path d="M25 25.94h7c.58 0 1-.42 1-1v-2c0-.58-.42-1-1-1h-7c-.58 0-1 .42-1 1v2c0 .58.42 1 1 1zm-17 12h7c.58 0 1-.42 1-1v-2c0-.58-.42-1-1-1H8c-.58 0-1 .42-1 1v2c0 .58.42 1 1 1zm-.416 11C5.624 48.94 4 47.315 4 45.356V14.522c0-1.96 1.625-3.582 3.584-3.582h24.832c1.96 0 3.584 1.623 3.584 3.582v30.834c0 1.96-1.625 3.584-3.584 3.584zM32 36.94H19c0 2.19-1.81 4-4 4H7v4.416c0 .35.235.584.584.584h24.832c.35 0 .584-.235.584-.584v-8.417zm1-2v-6h-8c-2.19 0-4-1.81-4-4h-1c-4.333-.002-8.667.004-13 0v6h8c2.19 0 4 1.81 4 4h13zm0-16v-4.418c0-.35-.235-.582-.584-.582H7.584c-.35 0-.584.233-.584.582v8.417c4.333.002 8.667.001 13 .001h1c0-2.19 1.81-4 4-4h8z"/></svg></span>
+                            <span class="label">Open the flow editor</span>
+                        </a>
+                        <div class="status" id="status" data-state="checking" role="status">
+                            <span class="shape"></span><span class="text">checking login…</span>
+                        </div>
+                    </div>
+                    <div class="target">
+                        <a class="node deploy" href="https://render.com/deploy?repo=https://github.com/e-labInnovations/ashad-red" data-wire>
+                            <span class="port in"></span>
+                            <span class="icon"><svg viewBox="0 0 40 60"><path d="M20 12a18 18 0 0 0-14.246 7.033l2.527.844 1.983-1.797 4.89-3.715.99.93-4.085 1.918-.063 2.416 3.22-.805c.95-.68 1.899-1.364 2.849-2.045l-.249-2.29h1.364c1.506-.517 3.013-1.032 4.52-1.548l1.341 1.325-.351 1.957-2.043-.186 1.982 2.662-2.477 1.858v-1.61l-2.29.123c-.868.66-1.735 1.322-2.602 1.983l-.371 3.343-3.096.497-1.053 2.414.494.496 1.178-.31 1.238-1.425 2.106.371 1.113 1.239c1.569.691 3.139 1.382 4.707 2.074H11.068l-1.672 1.455-.31 2.662 1.797 2.85 4.582.867.99 2.662-.371 3.096 2.105 1.61 3.281.31L25 43.158l.37-1.61.56-2.044c.495-.495.988-.991 1.484-1.486l.125-1.67-2.85-1.672-1.484-2.168 1.547.496 2.416 2.414 2.351-1.3.186-2.663-2.414-.371.123-1.332h4.644l1.424 2.2c.578.309 1.157.617 1.735.927l-.249-3.127h1.239l1.3 3.437.405-1.42A18 18 0 0 0 38 30a18 18 0 0 0-18-18zM2.957 33.809l-.518.043a18 18 0 0 0 2.676 6.238c.21-.628.418-1.256.627-1.885v-2.29L5 34.242l-2.043-.434zm25.527 12.049l-5.496 1.889a18 18 0 0 0 5.496-1.889z"/></svg></span>
+                            <span class="label">Deploy your own copy</span>
+                        </a>
+                    </div>
+                    <div class="target">
+                        <a class="node docs" href="https://nodered.org/docs/" data-wire>
+                            <span class="port in"></span>
+                            <span class="icon"><svg viewBox="0 0 40 60" class="stroke"><path d="M10.004 14.499h20M10.004 46.503h20M10.004 22.5h20M10.004 30.501h20M10.004 38.502h20" stroke-width="2.9997000000000003"/></svg></span>
+                            <span class="label">Read the Node-RED docs</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Grid 1/2 -->
-<div class="row2">
-    <div class="grid">
-        <div class="col-1-2">
-            <div class="content blurb">
-            <p>Node-RED provides a browser-based editor that makes it easy to wire together flows that can be deployed to the runtime in a single-click.</p>
-            <p>The version running here has been customised for the Heroku.</p>
-            <p>More information about Node-RED, including documentation, can be found at <a href="http://nodered.org">nodered.org</a>.</p>
-            </div>
+    <section class="block">
+        <div class="wrap">
+            <h2>What's running here</h2>
+            <p class="intro">Everything below is set up by environment variables on the server. You don't need to change any code.</p>
+            <dl class="facts">
+                <dt>Flow editor</dt>
+                <dd>At <code>/red</code>. It asks for a username and password when the server has them set.</dd>
+                <dt>Storage</dt>
+                <dd>Flows, credentials and settings are saved to Turso or PostgreSQL, so they survive restarts and redeploys. With no database set, they're saved to a local <code>flows.json</code>.</dd>
+                <dt>Stays awake</dt>
+                <dd>On Render, the app requests its own address every 10 minutes so the free plan doesn't put it to sleep.</dd>
+                <dt>Theme</dt>
+                <dd>The editor follows your system's light or dark setting. Change it any time in the editor's settings.</dd>
+            </dl>
         </div>
-        <div class="col-1-2">
-            <div class="content blurb">
-                <p style="text-align: center"><a style="width:350px;" class="button" href="red/">Go to your Node-RED flow editor</a></p>
-                <p class="insecure hide" style="text-align: center"><a href="#password-protecting">Learn how to password-protect your instance</a></p>
-                <p style="text-align: center"><a href="#custom">Learn how to customise Node-RED</a></p>
-            </div>
+    </section>
+
+    <section class="block">
+        <div class="wrap">
+            <h2>Run your own</h2>
+            <p class="intro">Free accounts on Turso and Render are enough to keep one Node-RED running all month.</p>
+            <ol class="steps">
+                <li>
+                    <div>
+                        <h3>Create a Turso database</h3>
+                        <p>Sign up at <a href="https://app.turso.tech">app.turso.tech</a>, create a database, then copy its URL and create a token for it.</p>
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <h3>Deploy to Render</h3>
+                        <p>Click the button and paste in the database URL, the token, and a username and password for the editor.</p>
+                        <a class="deploy-btn" href="https://render.com/deploy?repo=https://github.com/e-labInnovations/ashad-red"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" width="153" height="40"></a>
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <h3>Sign in to the editor</h3>
+                        <p>When the deploy finishes, open <code>https://&lt;your-app&gt;.onrender.com/red</code> and sign in. Your flows are saved to Turso every time you deploy them.</p>
+                    </div>
+                </li>
+            </ol>
         </div>
+    </section>
+
+    <section class="block custom">
+        <div class="wrap">
+            <h2>Make it yours</h2>
+            <p class="intro">Common changes, and where to make them.</p>
+            <h3>Add nodes</h3>
+            <p>Install them from <strong>Manage palette</strong> in the editor menu. To keep them across rebuilds, also add the package to <code>package.json</code>. Browse nodes in the <a href="https://flows.nodered.org">Node-RED library</a>.</p>
+            <h3>Turn on the editor login</h3>
+            <p>Set <code>NODE_RED_USERNAME</code> and <code>NODE_RED_PASSWORD</code> in your host's environment settings, then restart.</p>
+            <h3>Replace this page</h3>
+            <p>Put your own files in <code>public/</code>. They're served from the site root.</p>
+            <h3>Serve the editor at the root</h3>
+            <p>In <code>settings.js</code>, remove <code>httpStatic</code> and set <code>httpAdminRoot</code> to <code>"/"</code>.</p>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="wrap">
+        <a href="https://github.com/e-labInnovations/ashad-red">ashad-red on GitHub</a>
+        <a href="https://nodered.org">Node-RED</a>
+        <span>Apache 2.0 license</span>
     </div>
-</div>
+</footer>
 
-<!-- Grid 1/2 -->
-<div class="row3">
-    <div class="grid">
-        <div class="col-1-1">
-            <div class="content blurb">
-                <h3 id="custom">Customising your instance of Node-RED</h3>
-                <p>This template instance of Node-RED is enough to get you started creating flows.<p>
-                <p>You may want to customise it for your needs,
-                for example replacing this introduction page with your own, adding http authentication to the flow editor or adding new nodes to
-                the palette.</p>
-                <p style="clear:both"></p>
-
-                <h4 id="password-protecting">Password protect the flow editor</h4>
-                <p>By default, the editor is open for anyone to access and modify flows. To password-protect the editor:</p>
-                <p>Add the following user-defined variables.</p>
-                <ul>
-                  <li><code>NODE_RED_USERNAME</code> - the username to secure the editor with</li>
-                  <li><code>NODE_RED_PASSWORD</code> - the password to secure the editor with</li>
-                </ul>
-
-                <h4>Adding new nodes to the palette</h4>
-                <ol>
-                    <li>There is a growing collection of additional nodes that can be added to the Node-RED editor.
-                    You can search for available nodes in the <a target="_blank" href="http://flows.nodered.org">Node-RED library</a>.</li>
-                    <li>Edit the file <code>package.json</code> and add the required node package to the <code>dependencies</code>
-                    section. The format is:
-                    <pre>"node-red-node-package-name":"x.x.x"</pre>
-                    Where <code>x.x.x</code> is the desired version number.</li>
-                </ol>
-
-                <h4>Upgrading the version of Node-RED</h4>
-                <ol><li>This boilerplate is configured to grab the latest stable release of Node-RED whenever the
-                    application is pushed into Heroku.</li>
-                </ol>
-
-                <h4>Changing the static web content</h4>
-                <ol><li>The page you are reading now is served as static content from the application. This can be replaced
-                with whatever content you want in the <code>public</code> directory.</li></ol>
-
-                <h4>Remove static web content and serve the flow editor from the root path</h4>
-                <ol><li>In the file <code>settings.js</code>, delete the <code>httpStatic</code> and <code>httpAdminRoot</code> entries.</li></ol>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="footer">
-    <div class="grid">
-        <div class="content">
-            <div class="ets-link"><a href="http://ibm.com/blogs/et">Node-RED is a creation of IBM Emerging Technology</a></div>
-            <div class="ets-link"><a href="http://ibm.com/blogs/et"><img class="ets-globe" src="images/ets-globe.png" /> </a></div>
-        </div>
-    </div>
-</div>
 <script>
+(function () {
+    // Live editor status, in the style of a Node-RED node status
+    var status = document.getElementById('status');
+    var text = status.querySelector('.text');
+    fetch('red/auth/login', { headers: { Accept: 'application/json' } })
+        .then(function (res) { if (!res.ok) throw new Error(res.status); return res.json(); })
+        .then(function (auth) {
+            if (auth && auth.type) {
+                status.dataset.state = 'locked';
+                text.textContent = 'login required';
+            } else {
+                status.dataset.state = 'open';
+                text.textContent = 'open to anyone: no login set';
+            }
+        })
+        .catch(function () {
+            status.dataset.state = 'down';
+            text.textContent = 'editor not reachable';
+        });
 
-$(function() {
-    $(".insecure").hide();
-    $.ajax({
-        dataType: "json",
-        url: "/red/settings",
-        success: function() {
-            $(".insecure").show();
-        },
-        error: function(jqXHR,textStatus,errorThrown) {}
-    });
+    // Wires between the source node and each target node
+    var flow = document.getElementById('flow');
+    var svg = document.getElementById('wires');
+    var src = document.getElementById('src');
+    var targets = Array.prototype.slice.call(flow.querySelectorAll('[data-wire]'));
+    var NS = 'http://www.w3.org/2000/svg';
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var animated = false;
 
-});
+    function portCenter(el, side) {
+        var f = flow.getBoundingClientRect();
+        var r = el.getBoundingClientRect();
+        return { x: (side === 'out' ? r.right : r.left) - f.left, y: r.top + r.height / 2 - f.top };
+    }
+
+    function draw() {
+        svg.innerHTML = '';
+        var a = portCenter(src, 'out');
+        var paths = targets.map(function (t) {
+            var b = portCenter(t, 'in');
+            // Node-RED style bezier; loops back when the target is left of the source
+            var dx = b.x - a.x;
+            var c = dx > 0 ? dx * 0.5 : Math.max(60, -dx * 0.5);
+            var p = document.createElementNS(NS, 'path');
+            p.setAttribute('class', 'wire');
+            p.setAttribute('d', 'M' + a.x + ',' + a.y + ' C' + (a.x + c) + ',' + a.y + ' ' + (b.x - c) + ',' + b.y + ' ' + b.x + ',' + b.y);
+            svg.appendChild(p);
+            return p;
+        });
+        if (!animated && !reduceMotion) {
+            animated = true;
+            animate(paths);
+        }
+    }
+
+    function animate(paths) {
+        paths.forEach(function (p, i) {
+            var len = p.getTotalLength();
+            p.style.strokeDasharray = len;
+            p.style.strokeDashoffset = len;
+            p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+                { duration: 600, delay: 150 + i * 120, easing: 'ease-out', fill: 'forwards' });
+        });
+        // One message travels down the first wire, to the editor
+        var first = paths[0];
+        var dot = document.createElementNS(NS, 'circle');
+        dot.setAttribute('r', 6);
+        dot.setAttribute('class', 'msg');
+        dot.style.opacity = 0;
+        svg.appendChild(dot);
+        var len = first.getTotalLength();
+        var start = null;
+        setTimeout(function () {
+            requestAnimationFrame(function step(ts) {
+                if (!first.isConnected) return;
+                if (start === null) start = ts;
+                var t = Math.min((ts - start) / 900, 1);
+                var e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                var pt = first.getPointAtLength(e * len);
+                dot.setAttribute('cx', pt.x);
+                dot.setAttribute('cy', pt.y);
+                dot.style.opacity = t < 0.95 ? 1 : (1 - t) * 20;
+                if (t < 1) requestAnimationFrame(step); else dot.remove();
+            });
+        }, 900);
+    }
+
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+    window.addEventListener('resize', draw);
+})();
 </script>
 </body>
 </html>
