@@ -12,3 +12,6 @@ lib/
 
 # macOS Finder metadata
 .DS_Store
+
+# Local drafts and notes
+.scratch/
