@@ -25,6 +25,10 @@ ashad-red is a ready-made Node-RED setup that fixes both:
 
 ## Quick start: free deploy with Turso and Render
 
+For a step-by-step walkthrough with screenshots, including the Neon option, read the tutorial:
+
+[![Run Node-RED 24/7 for Free on Render with Turso or Neon](https://elabins.com/widgets/post/run-node-red-247-for-free-on-render-with-turso-or-neon.svg)](https://elabins.com/blog/run-node-red-247-for-free-on-render-with-turso-or-neon)
+
 You need free accounts on [Turso](https://turso.tech) and [Render](https://render.com).
 
 1. **Create a database.** In [app.turso.tech](https://app.turso.tech), create a database. Copy its URL (`libsql://<db>-<org>.turso.io`) and create a token for it. The token is shown only once.
