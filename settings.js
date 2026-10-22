@@ -481,9 +481,7 @@ var settings = module.exports = {
      * will allow the `os` module to be accessed in a Function node using:
      *    global.get("os")
      */
-    functionGlobalContext: {
-        firebaseAdmin:require("firebase-admin")
-    },
+    functionGlobalContext: {},
 
     /** The maximum number of messages nodes will buffer internally as part of their
      * operation. This applies across a range of nodes that operate on message sequences.

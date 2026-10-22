@@ -107,7 +107,7 @@ Everything is set with environment variables. Locally they're read from `.env`; 
 - **Credentials aren't encrypted** (`credentialSecret: false`). They're stored in your database as plain text, so keep database access private.
 - **All core nodes are enabled,** including `exec`, `file` / `file in`, `watch`, `tcp` and `udp`. On Render, files you write are wiped on every restart, and TCP/UDP servers can't be reached from outside (outbound connections work). `exec` runs shell commands on the server, so always set an editor login. To turn these nodes off, uncomment `nodesExcludes` in `settings.js`.
 - **Extra nodes:** install from **Manage palette**. A Render rebuild wipes them, but Node-RED reinstalls any your flows use at the next start, which makes that start slower. Add the package to `package.json` to avoid this.
-- **Function nodes** can `require` npm modules (`functionExternalModules`). `firebase-admin` is available as `global.get('firebaseAdmin')`.
+- **Function nodes** can `require` npm modules (`functionExternalModules`).
 - **CORS:** HTTP-in endpoints accept requests from any origin (`httpNodeCors`).
 - **Theme:** the editor follows the OS light/dark setting until a user picks one in *User Settings*.
 - **Restarts:** Render can still restart a free service now and then. Your data is safe in the database; only in-memory context is lost.
