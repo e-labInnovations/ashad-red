@@ -20,7 +20,6 @@ ashad-red is a ready-made Node-RED setup that fixes both:
 - **Always on.** The app pings its own public URL every 10 minutes, so Render doesn't put it to sleep.
 - **One-click deploy.** The Render button sets up the service and asks only for your database and login details.
 - **Editor login** from two environment variables.
-- **Safer defaults.** Nodes that run shell commands or touch the server's files are turned off.
 - **System light/dark theme** in the editor, and a home page that links to it.
 
 ## Quick start: free deploy with Turso and Render
@@ -106,7 +105,7 @@ Everything is set with environment variables. Locally they're read from `.env`; 
 
 - **Context isn't saved.** Values from `flow.set` and `global.set` live in memory and are lost on restart. Store anything important in a database node instead.
 - **Credentials aren't encrypted** (`credentialSecret: false`). They're stored in your database as plain text, so keep database access private.
-- **Disabled nodes:** `exec`, `file in` / `file`, `watch`, `tcp` and `udp`. Free hosts have no persistent disk and don't accept raw TCP or UDP, and `exec` would allow shell commands on the server. Change `nodesExcludes` in `settings.js` to turn them back on.
+- **All core nodes are enabled,** including `exec`, `file` / `file in`, `watch`, `tcp` and `udp`. On Render, files you write are wiped on every restart, and TCP/UDP servers can't be reached from outside (outbound connections work). `exec` runs shell commands on the server, so always set an editor login. To turn these nodes off, uncomment `nodesExcludes` in `settings.js`.
 - **Extra nodes:** install from **Manage palette**. A Render rebuild wipes them, but Node-RED reinstalls any your flows use at the next start, which makes that start slower. Add the package to `package.json` to avoid this.
 - **Function nodes** can `require` npm modules (`functionExternalModules`). `firebase-admin` is available as `global.get('firebaseAdmin')`.
 - **CORS:** HTTP-in endpoints accept requests from any origin (`httpNodeCors`).
@@ -138,7 +137,7 @@ public/ ── home page at /        editor at /red
 
 | Path | Purpose |
 |---|---|
-| `settings.js` | Node-RED settings: storage, login, disabled nodes, theme |
+| `settings.js` | Node-RED settings: storage, login, theme |
 | `db.js` | Chooses the database from the environment |
 | `dbstorage.js` | Node-RED storage module |
 | `tursoutil.js`, `pgutil.js` | Turso and PostgreSQL queries |

@@ -41,8 +41,9 @@ var settings = module.exports = {
     /** The file containing the flows. If not set, defaults to flows_<hostname>.json **/
     // flowFile: 'flows.json',
 
-    /** Core node files to disable (names from @node-red/nodes/core): exec, file in/out, watch, tcp, udp */
-    nodesExcludes:[ '90-exec.js','10-file.js','23-watch.js','31-tcpin.js','32-udp.js' ],
+    /** Core node files to disable (names from @node-red/nodes/core). All core nodes are enabled.
+     * To turn off exec, file in/out, watch, tcp and udp, uncomment this: */
+    //nodesExcludes:[ '90-exec.js','10-file.js','23-watch.js','31-tcpin.js','32-udp.js' ],
 
     /** By default, credentials are encrypted in storage using a generated key. To
      * specify your own secret, set the following property.
