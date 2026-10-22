@@ -23,6 +23,7 @@
 var path = require("path");
 var when = require("when");
 var db = require('./db');
+var loginGuard = require('./loginguard');
 require('dotenv').config()
 
 process.env.NODE_RED_HOME = __dirname;
@@ -575,14 +576,18 @@ if (process.env.NODE_RED_USERNAME && process.env.NODE_RED_PASSWORD) {
             }
         },
         authenticate: function(username, password) {
-            if (process.env.NODE_RED_USERNAME == username &&
-                process.env.NODE_RED_PASSWORD == password) {
+            // Check both (no short-circuit) so timing doesn't reveal a correct username
+            var userOk = loginGuard.safeEqual(process.env.NODE_RED_USERNAME, username);
+            var passOk = loginGuard.safeEqual(process.env.NODE_RED_PASSWORD, password);
+            if (userOk && passOk) {
                 return when.resolve({username:username,permissions:"*"});
             } else {
                 return when.resolve(null);
             }
         }
     }
+    // Rate-limit failed logins (see loginguard.js)
+    if (loginGuard.middleware) settings.httpAdminMiddleware = loginGuard.middleware;
 }
 
 settings.appName = process.env.APP_NAME || 'ashad-nodered';

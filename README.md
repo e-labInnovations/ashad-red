@@ -19,7 +19,7 @@ ashad-red is a ready-made Node-RED setup that fixes both:
 - **Flows survive restarts.** Flows, credentials, settings, library entries and editor login sessions are stored in **Turso** (libSQL) or **PostgreSQL**, such as Neon.
 - **Always on.** The app pings its own public URL every 10 minutes, so Render doesn't put it to sleep.
 - **One-click deploy.** The Render button sets up the service and asks only for your database and login details.
-- **Editor login** from two environment variables.
+- **Editor login** from two environment variables, with brute-force protection: failed logins are slowed down and repeat offenders are blocked.
 - **System light/dark theme** in the editor, and a home page that links to it.
 
 ## Quick start: free deploy with Turso and Render
@@ -95,6 +95,11 @@ Everything is set with environment variables. Locally they're read from `.env`; 
 | `KEEP_ALIVE` | on | Set to `false` to turn off the keep-alive ping |
 | `KEEP_ALIVE_URL` | `RENDER_EXTERNAL_URL` | URL to ping. Set it to enable keep-alive on hosts other than Render. |
 | `KEEP_ALIVE_INTERVAL` | `10` | Minutes between pings |
+| `LOGIN_GUARD` | on | Set to `false` to turn off login rate limiting |
+| `LOGIN_MAX_FAILS` | `5` | Failed logins from one IP before it's blocked |
+| `LOGIN_MAX_TOTAL_FAILS` | `50` | Failed logins from all IPs before every login is blocked |
+| `LOGIN_LOCK_MINUTES` | `15` | How far back failures count, and how long a block lasts |
+| `LOGIN_FAIL_DELAY` | `1000` | Milliseconds each failed login waits before replying |
 | `SECURE_LINK` | | Stored with the flows on each save |
 | `UIBROOT` | project folder | Root folder for `node-red-contrib-uibuilder` |
 
@@ -108,6 +113,7 @@ Everything is set with environment variables. Locally they're read from `.env`; 
 - **All core nodes are enabled,** including `exec`, `file` / `file in`, `watch`, `tcp` and `udp`. On Render, files you write are wiped on every restart, and TCP/UDP servers can't be reached from outside (outbound connections work). `exec` runs shell commands on the server, so always set an editor login. To turn these nodes off, uncomment `nodesExcludes` in `settings.js`.
 - **Extra nodes:** install from **Manage palette**. A Render rebuild wipes them, but Node-RED reinstalls any your flows use at the next start, which makes that start slower. Add the package to `package.json` to avoid this.
 - **Function nodes** can `require` npm modules (`functionExternalModules`).
+- **Login lockout:** after 5 failed logins an IP is blocked for 15 minutes. After 50 failures from any IPs, every login is blocked for up to 15 minutes, including yours; flows keep running. Restarting the service clears all blocks.
 - **CORS:** HTTP-in endpoints accept requests from any origin (`httpNodeCors`).
 - **Theme:** the editor follows the OS light/dark setting until a user picks one in *User Settings*.
 - **Restarts:** Render can still restart a free service now and then. Your data is safe in the database; only in-memory context is lost.
@@ -129,6 +135,7 @@ The built-in ping can't wake the app if it has stopped for another reason. For a
 settings.js ─┬─ db.js ── picks tursoutil.js, pgutil.js, or none (local files)
              ├─ dbstorage.js ── Node-RED storage API → selected database
              ├─ keepalive.js ── pings RENDER_EXTERNAL_URL every 10 min
+             ├─ loginguard.js ── rate-limits failed editor logins
              └─ editor/default-theme.js ── editor theme defaults to System
 public/ ── home page at /        editor at /red
 ```
@@ -142,6 +149,7 @@ public/ ── home page at /        editor at /red
 | `dbstorage.js` | Node-RED storage module |
 | `tursoutil.js`, `pgutil.js` | Turso and PostgreSQL queries |
 | `keepalive.js` | Self-ping that keeps free hosts awake |
+| `loginguard.js` | Rate limiting for failed editor logins |
 | `render.yaml` | Render Blueprint behind the deploy button |
 | `scripts/` | Postgres → Turso migration and the Apps Script pinger |
 | `public/` | Home page |
