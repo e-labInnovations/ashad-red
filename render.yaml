@@ -18,6 +18,9 @@ services:
       # Or use Postgres (e.g. Neon): leave the two Turso values blank
       - key: DATABASE_URL
         sync: false
+      # Row key for this instance's data. Change it to run several instances on one database.
+      - key: APP_NAME
+        value: ashad-nodered
       - key: NODE_RED_USERNAME
         sync: false
       - key: NODE_RED_PASSWORD

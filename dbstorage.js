@@ -198,7 +198,7 @@ function saveLibraryEntry(type, path, meta, body) {
 var dbstorage = {
   init: function (_settings) {
     settings = _settings
-    appname = settings.pgAppname || require('os').hostname()
+    appname = settings.appName || require('os').hostname()
     return when.promise(async (resolve, reject, notify) => {
       try {
         const _client = db.init()

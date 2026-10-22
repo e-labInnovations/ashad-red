@@ -587,7 +587,7 @@ if (process.env.NODE_RED_USERNAME && process.env.NODE_RED_PASSWORD) {
     }
 }
 
-settings.pgAppname = process.env.APP_NAME || 'ashad-nodered';
+settings.appName = process.env.APP_NAME || 'ashad-nodered';
 
 if (db) {
     console.log('Using ' + db.kind + ' storage');
